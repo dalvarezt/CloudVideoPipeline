@@ -53,7 +53,7 @@ public class COSBridge implements Callback{
     public void callback(String payload) {
         try {
             JsonObject doc = JsonParser.parseString(payload).getAsJsonObject();
-            String ts = doc.get("timestamp").getAsString();
+            String[] ts = doc.get("timestamp").getAsString().split("T");
             String camera = doc.get("cameraId").getAsString();
             String location = doc.get("locationName").getAsString();
             byte[] image = Base64.getDecoder().decode(
@@ -66,7 +66,7 @@ public class COSBridge implements Callback{
             System.out.println("Uploading image");
             cos.putObject(
                 bucket,
-                String.format("%s/%s/%s.jpg", new Object[]{location, camera, ts}),
+                String.format("%s/%s/%s/%s.jpg", new Object[]{location, camera, ts[0], ts[1]}),
                 is,
                 metadata
             );
