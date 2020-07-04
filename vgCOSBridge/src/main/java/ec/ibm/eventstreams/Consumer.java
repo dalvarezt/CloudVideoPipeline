@@ -1,5 +1,5 @@
 package ec.ibm.eventstreams;
-
+import java.util.concurrent.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -19,7 +19,8 @@ public class Consumer implements Runnable {
 	
 	private final KafkaConsumer<String, String> kafkaConsumer;
     private volatile boolean closing = false;
-    private Callback callback;
+	private Callback callback;
+	private ExecutorService executorService = Executors.newFixedThreadPool(4);
 	
 	/**
 	 * 
@@ -52,8 +53,13 @@ public class Consumer implements Runnable {
 					if (!records.isEmpty()) {
 						for (ConsumerRecord<String, String> record : records) {
 							
+							executorService.execute(new Runnable() {
+								public void run() {
+									callback.callback(record.value());
+								}
+							});
 							
-							this.callback.callback(record.value());
+							
 						}
 
 					}
