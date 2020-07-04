@@ -52,7 +52,7 @@ class RTSP_grabber(threading.Thread):
                     last_ts = new_ts
                     key = self.location_name + "_" + self.cameraId
                     b64frame = self.image_encoder(frame)
-                    timestamp = datetime.now().isoformat()
+                    timestamp = datetime.utcnow().isoformat(timespec='milliseconds') + "Z"
                     message = {
                         "timestamp":timestamp,
                         "cameraId":self.cameraId,
