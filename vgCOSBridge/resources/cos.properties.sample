@@ -1,0 +1,5 @@
+apiKey=<api-key>
+serviceInstanceId=<instance-id>
+endpoint=s3.us-south.cloud-object-storage.appdomain.cloud
+location=us
+bucket=cos-video-feed

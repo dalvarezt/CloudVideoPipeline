@@ -1,0 +1,11 @@
+stream_sources:
+ - source: 
+    cameraId: westbound-lane
+    streamURI: rtsp://170.93.143.139/rtplive/470011e600ef003a004ee33696235daa
+    locationName: highway
+    FPS: 4
+ - source:
+     cameraId: coast
+     streamURI: rtsp://freja.hiof.no:1935/rtplive/definst/hessdalen03.stream
+     locationName: hessdalen03
+     FPS: 8

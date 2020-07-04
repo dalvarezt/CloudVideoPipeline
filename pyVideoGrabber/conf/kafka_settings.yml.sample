@@ -1,0 +1,12 @@
+bootstrap.servers: <comma-separated-list-of-brokers>
+sasl.username: token
+sasl.password: <password>
+sasl.mechanism: PLAIN
+security.protocol: SASL_SSL
+api.version.request: True
+broker.version.fallback: 0.10.2.1
+log.connection.close: False
+client.id: image-grabber
+default.topic.config:
+  request.required.acks: all
+#debug: broker,topic,metadata

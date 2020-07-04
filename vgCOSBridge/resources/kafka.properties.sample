@@ -1,0 +1,5 @@
+bootstrap.servers=<comma-separated-list-of-brokers>
+sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="token" password="<password>";
+sasl.mechanism=PLAIN
+security.protocol=SASL_SSL
+ssl.protocol=TLSv1.2
