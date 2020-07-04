@@ -1,0 +1,8 @@
+target
+*.properties
+*_settings.yml
+__pycache__
+.vscode
+.settings
+.classpath
+
