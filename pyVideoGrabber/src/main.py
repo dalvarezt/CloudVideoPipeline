@@ -3,7 +3,6 @@ import yaml
 import logging
 import sys, os
 import io
-from aiofile import AIOFile
 import signal
 import base64
 import uuid
