@@ -120,7 +120,7 @@ public class EventService {
 	}
 
 	private boolean isDateValid(String ds) {
-		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSSX");
+		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSSXXX");
 		try {
 			df.parse(ds);
 			return true;

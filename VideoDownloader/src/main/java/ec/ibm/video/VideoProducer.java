@@ -49,7 +49,9 @@ public class VideoProducer {
     ManagedExecutor executor;
 	
 	@Inject @ApplicationScoped
-    private AmazonS3 cosClient;
+	private AmazonS3 cosClient;
+	
+	public static final String DATETIME_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
 	
 	/**
 	 * Locates and downloads frames from COS and generates a video file with them
@@ -165,8 +167,8 @@ public class VideoProducer {
 	 * @throws ParseException
 	 */
 	private Calendar getObjectTimestamp(String objectKey) throws ParseException {
-		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
-        df.setTimeZone(TimeZone.getTimeZone("CET"));
+		DateFormat df = new SimpleDateFormat(DATETIME_PATTERN);
+        df.setTimeZone(TimeZone.getTimeZone("GMT"));
         Pattern timePattern = Pattern.compile("\\/(\\d{4}-\\d{2}-\\d{2})\\/(\\d{2}:\\d{2}:\\d{2}\\.\\d{3})\\d{0,3}\\.jpg");
         Matcher m = timePattern.matcher(objectKey);
         Calendar result = Calendar.getInstance();
@@ -216,8 +218,8 @@ public class VideoProducer {
             searchResults = this.cosClient.listObjects(this.bucket, searchResults.getNextMarker());
             summaries.addAll(searchResults.getObjectSummaries());
         }
-        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
-        df.setTimeZone(TimeZone.getTimeZone("CET"));
+        DateFormat df = new SimpleDateFormat(DATETIME_PATTERN);
+        df.setTimeZone(TimeZone.getTimeZone("GMT"));
         
         System.out.println("Objects found: " + summaries.size());
         for (S3ObjectSummary os : summaries) {
@@ -268,13 +270,13 @@ public class VideoProducer {
      * @return
      */
     private String getFullKey(String location, String camera, Calendar ts){
-    	SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'/'HH:mm:ss.SSS");
+    	SimpleDateFormat df = new SimpleDateFormat(DATETIME_PATTERN);
     	
-    	df.setTimeZone(TimeZone.getTimeZone("CET"));
+    	df.setTimeZone(TimeZone.getTimeZone("GMT"));
         return String.format("%s/%s/%s", new Object[]{
             location, 
             camera, 
-            df.format(ts.getTime())
+            df.format(ts.getTime()).replace("T", "/")
         });
     }
 	
