@@ -28,7 +28,7 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.util.TimeZone;
+//import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.Base64;
 import java.util.Calendar;
@@ -74,7 +74,17 @@ public class GetVideoServlet extends HttpServlet {
 	    	}
 		}, 2, VIDEO_FILE_PRUNE_MINUTES/2, TimeUnit.MINUTES);
 		
-	}
+    }
+    
+    private String getURL(HttpServletRequest request){
+        StringBuilder url = new StringBuilder();
+        url.append(request.getContextPath())
+         .append(request.getServletPath())
+         .append(request.getPathInfo())
+         .append("?")
+         .append(request.getQueryString());
+        return url.toString();
+    }
     
 
 	/**
@@ -86,8 +96,8 @@ public class GetVideoServlet extends HttpServlet {
         String s_startTimestamp = request.getParameter("startTimestamp");
         String s_endTimestamp = request.getParameter("endTimestamp");
         Calendar startTimestamp, endTimestamp;
-        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
-        df.setTimeZone(TimeZone.getTimeZone("CET"));
+        DateFormat df = new SimpleDateFormat(VideoProducer.DATETIME_PATTERN);
+        //df.setTimeZone(TimeZone.getTimeZone("CET"));
         
         try {
             startTimestamp = Calendar.getInstance();
@@ -97,7 +107,9 @@ public class GetVideoServlet extends HttpServlet {
         } catch (ParseException pe) {
             throw new ServletException("Invalid timestamp format");
         }
-        String filename = VIDEO_DIRECTORY + "/" + Base64.getEncoder().encodeToString(request.getRequestURL().toString().getBytes()) + ".mp4";
+        
+        // This allows to chache recently produced videos on the file system
+        String filename = VIDEO_DIRECTORY + "/" + Base64.getEncoder().encodeToString(getURL(request).getBytes()) + ".mp4";
         File result = new File(filename);
         if (!result.exists() ) {
         	try {
@@ -118,6 +130,8 @@ public class GetVideoServlet extends HttpServlet {
     	fr.close();
     	response.getOutputStream().flush();
     }
+
+    
 
     /**
      * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
