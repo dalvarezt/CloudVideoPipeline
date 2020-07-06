@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cosbridge.us-south.containers.appdomain.cloud
+  namespace: default
+  labels:
+    component: cosbridge
+    tier: backend
+spec:
+  selector:
+    matchLabels:
+      component: cosbridge
+      tier: backend
+  template:
+    metadata:
+      labels:
+        component: cosbridge
+        tier: backend
+    spec:
+      containers:
+      - name: cosbridge
+        image: us.icr.io/video/cosbridge:0.2
+      

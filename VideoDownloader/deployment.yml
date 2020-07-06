@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: videodownloader.us-south.containers.appdomain.cloud
+  namespace: default
+  labels:
+    component: videodownloader
+    tier: frontend
+spec:
+  selector:
+    matchLabels:
+      component: videodownloader
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        component: videodownloader
+        tier: frontend
+    spec:
+      containers:
+      - name: videodownloader
+        image: us.icr.io/video/videodownloader:latest
+        ports:
+          - containerPort: 9080
+            protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+ name: videodownloader-nodeport
+ labels:
+   app: videodownloader
+spec:
+ selector:
+   app: videodownloader
+ type: NodePort
+ ports:
+  - port: 9080
+    nodePort: 30081
+      

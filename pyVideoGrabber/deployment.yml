@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: videograbber.us-south.containers.appdomain.cloud
+  namespace: default
+  labels:
+    component: videograbber
+    tier: backend
+spec:
+  selector:
+    matchLabels:
+      component: videograbber
+      tier: backend
+  template:
+    metadata:
+      labels:
+        component: videograbber
+        tier: backend
+    spec:
+      containers:
+      - name: videograbber
+        image: us.icr.io/video/videograbber:0.2
+      
