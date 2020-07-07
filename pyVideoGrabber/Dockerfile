@@ -1,6 +1,6 @@
-FROM registry.redhat.io/rhel8/python-38
+FROM python:3.8
 USER 0
-RUN yum install -y --disableplugin=subscription-manager libXrender 
+#RUN yum install -y --disableplugin=subscription-manager libXrender 
 
 ADD --chown=1001:0 src/* /pyvg/app/
 ADD --chown=1001:0 conf/* /pyvg/conf/

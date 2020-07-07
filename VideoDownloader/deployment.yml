@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: videodownloader
-        image: us.icr.io/video/videodownloader:latest
+        image: us.icr.io/video/w_videodownloader:latest
         ports:
           - containerPort: 9080
             protocol: TCP

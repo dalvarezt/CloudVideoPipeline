@@ -28,10 +28,11 @@
     
     <webApplication id="VideoDownloader" location="VideoDownloader.war" name="VideoDownloader">
     	<addProperties>
-		    <property name="cos_apiKey" value="WmUjQucaM-2vVozptX_eGUv2Go5revmYDOxt64YQbSsv" />
+		    <!--property name="cos_apiKey" value="WmUjQucaM-2vVozptX_eGUv2Go5revmYDOxt64YQbSsv" />
 			<property name="cos_serviceInstanceId" value="28d80995595b7a05fdd79f7d1364862f" />
 			<property name="cos_endpoint" value="s3.us-south.cloud-object-storage.appdomain.cloud" />
-			<property name="cos_location" value="us" />
+			<property name="cos_location" value="us" /-->
+            <property name="cos_concurrent_threads" value="6" />
 			<property name="cos_bucket" value="cos-video-feed" />
     	</addProperties>
     </webApplication>

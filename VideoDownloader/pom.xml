@@ -87,6 +87,7 @@
         <groupId>org.eclipse.microprofile.context-propagation</groupId>
         <artifactId>microprofile-context-propagation-api</artifactId>
         <version>1.0.2</version>
+        <scope>provided</scope>
       </dependency>
       <dependency>
       	<groupId>org.jcodec</groupId>

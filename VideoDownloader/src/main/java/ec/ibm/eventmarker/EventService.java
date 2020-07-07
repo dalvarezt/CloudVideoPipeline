@@ -12,9 +12,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.RequestScoped;
@@ -120,11 +119,11 @@ public class EventService {
 	}
 
 	private boolean isDateValid(String ds) {
-		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSSXXX");
+		DateTimeFormatter f = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 		try {
-			df.parse(ds);
+			f.parse(ds);
 			return true;
-		} catch(ParseException e) {
+		} catch(DateTimeParseException e) {
 			return false;
 		}
 	}

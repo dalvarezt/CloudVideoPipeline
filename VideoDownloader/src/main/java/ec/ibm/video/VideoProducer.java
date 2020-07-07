@@ -5,13 +5,13 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAccessor;
 import java.util.List;
 import java.util.PriorityQueue;
-import java.util.TimeZone;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -25,16 +25,16 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.imageio.ImageIO;
 import javax.inject.Inject;
 
+import com.ibm.cloud.objectstorage.services.s3.AmazonS3;
+import com.ibm.cloud.objectstorage.services.s3.model.ObjectListing;
+import com.ibm.cloud.objectstorage.services.s3.model.S3ObjectSummary;
+
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.context.ManagedExecutor;
 import org.jcodec.api.awt.AWTSequenceEncoder;
 import org.jcodec.common.io.NIOUtils;
 import org.jcodec.common.io.SeekableByteChannel;
 import org.jcodec.common.model.Rational;
-
-import com.ibm.cloud.objectstorage.services.s3.AmazonS3;
-import com.ibm.cloud.objectstorage.services.s3.model.ObjectListing;
-import com.ibm.cloud.objectstorage.services.s3.model.S3ObjectSummary;
 
 import ec.ibm.video.context.AppContext;
 
@@ -43,7 +43,11 @@ import ec.ibm.video.context.AppContext;
 public class VideoProducer {
 	@Inject
     @ConfigProperty(name="cos_bucket")
-    private String bucket;
+	private String bucket;
+	
+	@Inject
+	@ConfigProperty(name="cos_concurrent_threads", defaultValue="6")
+	private int COS_CONCURRENT_THREADS;
 	
 	@Inject @AppContext
     ManagedExecutor executor;
@@ -66,8 +70,8 @@ public class VideoProducer {
 			File file, 
 			String location, 
 			String camera, 
-			Calendar startTimestamp, 
-			Calendar endTimestamp 
+			Instant startTimestamp, 
+			Instant endTimestamp 
 	) throws Exception {
 	
 		SeekableByteChannel out;
@@ -108,7 +112,7 @@ public class VideoProducer {
 			return null;
 		};
 		
-		int batchSize = 4;
+		int batchSize = COS_CONCURRENT_THREADS;
 		BlockingQueue<CompletableFuture<InputStream>> storage = new ArrayBlockingQueue<>(batchSize);
 		
 		while( !objectPaths.isEmpty()) {
@@ -140,7 +144,9 @@ public class VideoProducer {
 				}
 			}
 		}
+		
 		encoder.finish();
+		
 		
 	}
 	/**
@@ -151,11 +157,11 @@ public class VideoProducer {
 	private Rational getFPS(Object[] paths) {
 		
 		try {
-			Calendar first = this.getObjectTimestamp((String)paths[0]);
-			Calendar last = this.getObjectTimestamp((String)paths[paths.length-1]);
-			int duration = (int)( (last.getTimeInMillis()-first.getTimeInMillis())/1000 );
+			Instant first = this.getObjectTimestamp((String)paths[0]);
+			Instant last = this.getObjectTimestamp((String)paths[paths.length-1]);
+			int duration = (int)Duration.between(first, last).getSeconds();
 			return Rational.R(paths.length, duration);
-		} catch (ParseException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			return Rational.R(16, 1);
 		}
@@ -164,18 +170,18 @@ public class VideoProducer {
 	 * Extracts the timestamp of an object key as a Calendar
 	 * @param objectKey The object key as stored in COS
 	 * @return
-	 * @throws ParseException
+	 * @throws Exception
 	 */
-	private Calendar getObjectTimestamp(String objectKey) throws ParseException {
-		DateFormat df = new SimpleDateFormat(DATETIME_PATTERN);
-        df.setTimeZone(TimeZone.getTimeZone("GMT"));
-        Pattern timePattern = Pattern.compile("\\/(\\d{4}-\\d{2}-\\d{2})\\/(\\d{2}:\\d{2}:\\d{2}\\.\\d{3})\\d{0,3}\\.jpg");
+	private Instant getObjectTimestamp(String objectKey) throws Exception {
+        Pattern timePattern = Pattern.compile("\\/(\\d{4}-\\d{2}-\\d{2})\\/(\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z{0,1})\\.jpg");
         Matcher m = timePattern.matcher(objectKey);
-        Calendar result = Calendar.getInstance();
+        Instant result;
         if (m.find()) {
-        	result.setTime(df.parse(m.group(1) + "T" + m.group(2)));
+			TemporalAccessor ta = DateTimeFormatter.ISO_INSTANT.parse(m.group(1) + "T" + m.group(2));
+        	result = Instant.from(ta);
         } else {
-        	throw new ParseException("Invalid date on object path", 0);
+			System.out.println("Pattern matching failed");
+        	throw new Exception("Invalid date on object path");
         	//return null;
         }
         return result;
@@ -190,21 +196,22 @@ public class VideoProducer {
 	 * @param endTimestamp
 	 * @return
 	 */
-	private PriorityQueue<String> getFilePaths(String location, String camera, Calendar startTimestamp, Calendar endTimestamp){
+	private PriorityQueue<String> getFilePaths(String location, String camera, Instant startTimestamp, Instant endTimestamp){
 		PriorityQueue<String> result = new PriorityQueue<String>();
-		if (startTimestamp.get(Calendar.DAY_OF_YEAR) < endTimestamp.get(Calendar.DAY_OF_YEAR)) {
-            Calendar pivotTimestamp = Calendar.getInstance();
-            pivotTimestamp.set(Calendar.DAY_OF_YEAR, startTimestamp.get(Calendar.DAY_OF_YEAR));
-            pivotTimestamp.set(Calendar.HOUR_OF_DAY, 23);
-            pivotTimestamp.set(Calendar.MINUTE, 59);
-            pivotTimestamp.set(Calendar.SECOND, 59);
-            pivotTimestamp.set(Calendar.MILLISECOND,999);
+		
+		if (startTimestamp.truncatedTo(ChronoUnit.DAYS).compareTo(endTimestamp.truncatedTo(ChronoUnit.DAYS))!=0) {
+			System.out.println("Timestamps spans two dates");
+			Instant pivotTimestamp = Instant.from(endTimestamp.truncatedTo(ChronoUnit.DAYS))
+			    .minusMillis(1);
             result.addAll( this.getFilePaths(location, camera, startTimestamp, pivotTimestamp) );
-            pivotTimestamp.add(Calendar.MILLISECOND, 1);
+			pivotTimestamp = pivotTimestamp.plusMillis(1);
             result.addAll( this.getFilePaths(location, camera, pivotTimestamp, endTimestamp) );
             
             return result;
-        }
+        } else {
+			System.out.println("Start timestamp" + startTimestamp.toString());
+			System.out.println("END timestamp" +endTimestamp.toString());
+		}
 		
         String searchKey = getOptimalKey(location, camera, startTimestamp, endTimestamp);
         System.out.println("Search key: " + bucket + ":" +searchKey);
@@ -218,18 +225,19 @@ public class VideoProducer {
             searchResults = this.cosClient.listObjects(this.bucket, searchResults.getNextMarker());
             summaries.addAll(searchResults.getObjectSummaries());
         }
-        DateFormat df = new SimpleDateFormat(DATETIME_PATTERN);
-        df.setTimeZone(TimeZone.getTimeZone("GMT"));
         
         System.out.println("Objects found: " + summaries.size());
         for (S3ObjectSummary os : summaries) {
             try {
                 String objectKey = os.getKey();
-                Calendar objDate = getObjectTimestamp(objectKey);
-                if( startTimestamp.compareTo(objDate)<=0 && endTimestamp.compareTo(objDate) >=0 ){
-                   result.add(objectKey);
-                }
-            } catch(ParseException e){
+				Instant objDate = getObjectTimestamp(objectKey);
+                if( 
+					(startTimestamp.equals(objDate) || startTimestamp.isBefore(objDate)) && 
+					(endTimestamp.equals(objDate) || endTimestamp.isAfter(objDate)) 
+				){
+					result.offer(objectKey);
+				}
+            } catch(Exception e){
             	System.out.println("Invalid date found on object key:" + os.getKey());
             }
             
@@ -247,12 +255,11 @@ public class VideoProducer {
 	 * @param endTimestamp
 	 * @return
 	 */
-    private String getOptimalKey(String location, String camera, Calendar startTimestamp, Calendar endTimestamp){
+    private String getOptimalKey(String location, String camera, Instant startTimestamp, Instant endTimestamp){
         String startKey = getFullKey(location, camera, startTimestamp);
         String endKey = getFullKey(location, camera, endTimestamp);
-        System.out.println(startKey);
         String result="";
-        for (int i=0; i<Math.max(startKey.length(), endKey.length()); i++){
+        for (int i=0; i<Math.min(startKey.length(), endKey.length()); i++){
             if (startKey.charAt(i) == endKey.charAt(i)){
                 result += startKey.charAt(i);
             } else {
@@ -269,14 +276,12 @@ public class VideoProducer {
      * @param ts
      * @return
      */
-    private String getFullKey(String location, String camera, Calendar ts){
-    	SimpleDateFormat df = new SimpleDateFormat(DATETIME_PATTERN);
-    	
-    	df.setTimeZone(TimeZone.getTimeZone("GMT"));
+    private String getFullKey(String location, String camera, Instant ts){
+		String dt = DateTimeFormatter.ISO_INSTANT.format(ts);
         return String.format("%s/%s/%s", new Object[]{
             location, 
             camera, 
-            df.format(ts.getTime()).replace("T", "/")
+            dt.replace("T", "/")
         });
     }
 	
