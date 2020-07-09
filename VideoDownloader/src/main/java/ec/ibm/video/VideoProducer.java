@@ -7,9 +7,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAccessor;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -198,33 +201,19 @@ public class VideoProducer {
 	 */
 	private PriorityQueue<String> getFilePaths(String location, String camera, Instant startTimestamp, Instant endTimestamp){
 		PriorityQueue<String> result = new PriorityQueue<String>();
-		
-		if (startTimestamp.truncatedTo(ChronoUnit.DAYS).compareTo(endTimestamp.truncatedTo(ChronoUnit.DAYS))!=0) {
-			System.out.println("Timestamps spans two dates");
-			Instant pivotTimestamp = Instant.from(endTimestamp.truncatedTo(ChronoUnit.DAYS))
-			    .minusMillis(1);
-            result.addAll( this.getFilePaths(location, camera, startTimestamp, pivotTimestamp) );
-			pivotTimestamp = pivotTimestamp.plusMillis(1);
-            result.addAll( this.getFilePaths(location, camera, pivotTimestamp, endTimestamp) );
-            
-            return result;
-        } else {
-			System.out.println("Start timestamp" + startTimestamp.toString());
-			System.out.println("END timestamp" +endTimestamp.toString());
+
+		List<String> searchKeys = getSearchKeys(location, camera, startTimestamp, endTimestamp);
+		List<S3ObjectSummary> summaries=null;
+		for(String searchKey : searchKeys) {
+			System.out.println("Search key: " + bucket + ":" +searchKey);
+			ObjectListing searchResults = this.cosClient.listObjects(this.bucket, searchKey);
+			if (summaries == null) {
+				summaries = searchResults.getObjectSummaries();
+			} else {
+				summaries.addAll(searchResults.getObjectSummaries());
+			}
+	
 		}
-		
-        String searchKey = getOptimalKey(location, camera, startTimestamp, endTimestamp);
-        System.out.println("Search key: " + bucket + ":" +searchKey);
-        ObjectListing searchResults = this.cosClient.listObjects(this.bucket, searchKey);
-        List<S3ObjectSummary> summaries = searchResults.getObjectSummaries();
-        if (summaries.isEmpty()) {
-        	System.err.println("No files found with given parameters");
-            return null;
-        }
-        while (searchResults.isTruncated()) {
-            searchResults = this.cosClient.listObjects(this.bucket, searchResults.getNextMarker());
-            summaries.addAll(searchResults.getObjectSummaries());
-        }
         
         System.out.println("Objects found: " + summaries.size());
         for (S3ObjectSummary os : summaries) {
@@ -247,27 +236,46 @@ public class VideoProducer {
 	}
 	
 	/**
-	 * Calculates the key of minimum length that matches the given 
-	 * timestamps.
+	 * Generates a set of keys separated by 1 minute that can be used to fetch all objects
+	 * that correspond to the given parameters.
 	 * @param location
 	 * @param camera
 	 * @param startTimestamp
 	 * @param endTimestamp
 	 * @return
 	 */
-    private String getOptimalKey(String location, String camera, Instant startTimestamp, Instant endTimestamp){
-        String startKey = getFullKey(location, camera, startTimestamp);
-        String endKey = getFullKey(location, camera, endTimestamp);
-        String result="";
-        for (int i=0; i<Math.min(startKey.length(), endKey.length()); i++){
-            if (startKey.charAt(i) == endKey.charAt(i)){
-                result += startKey.charAt(i);
-            } else {
-                break;
-            }
-        }
-        return result;
-    }
+	private List<String> getSearchKeys(String location, String camera, Instant startTimestamp, Instant endTimestamp) {
+		ArrayList<String> result = new ArrayList<>();
+		
+		Instant i = startTimestamp.truncatedTo(ChronoUnit.MINUTES);
+		do {
+			LocalDateTime ldt = i.atZone(ZoneOffset.UTC).toLocalDateTime();
+			StringBuilder sb = new StringBuilder()
+				.append(location).append("/").append(camera).append("/")
+				.append(ldt.getYear()).append("-");
+				if (ldt.getMonthValue()<10) {
+					sb.append("0");
+				}
+				sb.append(ldt.getMonthValue()).append("-");
+				if(ldt.getDayOfMonth()<10) {
+					sb.append("0");
+				}
+				sb.append(ldt.getDayOfMonth())
+				.append("/");
+				if (ldt.getHour() < 10) {
+					sb.append("0");
+				}
+				sb.append(ldt.getHour()).append(":");
+				if(ldt.getMinute()<10) {
+					sb.append("0");
+				}
+				sb.append(ldt.getMinute()).append(":");
+				result.add(sb.toString());
+				i = i.plus(1, ChronoUnit.MINUTES);
+		} while(i.compareTo(endTimestamp.truncatedTo(ChronoUnit.MINUTES))<=0);
+
+		return result;
+	}
     
     /**
      * Generates the search key for an object

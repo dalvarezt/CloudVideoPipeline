@@ -20,12 +20,14 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
 import java.util.Base64;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Resource;
@@ -99,7 +101,9 @@ public class GetVideoServlet extends HttpServlet {
         
         try {
             TemporalAccessor ta;
-            ta = DateTimeFormatter.ISO_OFFSET_DATE_TIME.parse(s_startTimestamp);
+            ta = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+                .withZone(ZoneId.of("UTC"))
+                .parse(s_startTimestamp);
             startTimestamp = Instant.from(ta);
         } catch (DateTimeParseException pe) {
             throw new ServletException("Invalid timestamp format for start timestamp");
@@ -107,7 +111,10 @@ public class GetVideoServlet extends HttpServlet {
 
         try {
             TemporalAccessor ta;
-            ta = DateTimeFormatter.ISO_OFFSET_DATE_TIME.parse(s_endTimestamp);
+            ta = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+            .withZone(ZoneId.of("UTC"))
+            .withLocale(Locale.US)
+            .parse(s_endTimestamp);
             endTimestamp = Instant.from(ta);
         } catch (DateTimeParseException pe) {
             throw new ServletException("Invalid timestamp format for end timestamp");
@@ -129,6 +136,7 @@ public class GetVideoServlet extends HttpServlet {
         	try {
                 producer.produceVideo(videoFile, location, camera, startTimestamp, endTimestamp);
         	} catch(Exception e) {
+                videoFile.delete();
         		throw new ServletException(e);
         	}
         }
