@@ -26,7 +26,7 @@ class RTSP_grabber(threading.Thread):
     def __init__(self, settings, callback, event_loop):
         threading.Thread.__init__(self)
         self.isRunning = True
-        self.client = rtsp.Client(rtsp_server_uri=settings['streamURI'])
+        self.client = rtsp.Client(rtsp_server_uri=settings['streamURI'], verbose=True)
         self.cameraId = settings['cameraId']
         self.location_name = settings['locationName']
         self.fps = settings['FPS']
@@ -35,6 +35,8 @@ class RTSP_grabber(threading.Thread):
         logger.info("RTSP stream initialized for camera %s at %s" % (self.cameraId, self.location_name))
 
     def image_encoder(self, img):
+        if img.width > 360:
+            img = img.reduce(36000/img.width)
         bytes = io.BytesIO()
         img.save(bytes, format="JPEG")
         bytes.seek(0)
