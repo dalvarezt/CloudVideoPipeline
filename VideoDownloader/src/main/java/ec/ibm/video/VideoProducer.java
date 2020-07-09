@@ -277,20 +277,4 @@ public class VideoProducer {
 		return result;
 	}
     
-    /**
-     * Generates the search key for an object
-     * @param location
-     * @param camera
-     * @param ts
-     * @return
-     */
-    private String getFullKey(String location, String camera, Instant ts){
-		String dt = DateTimeFormatter.ISO_INSTANT.format(ts);
-        return String.format("%s/%s/%s", new Object[]{
-            location, 
-            camera, 
-            dt.replace("T", "/")
-        });
-    }
-	
 }
