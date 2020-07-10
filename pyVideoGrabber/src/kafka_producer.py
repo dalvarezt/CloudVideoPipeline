@@ -38,7 +38,7 @@ class KafkaProducer(object):
             self.logger.warn('Delivery report: Failed sending message {0}'.format(msg.value()),err)
             self.schedule_retry(msg.value(), msg.key())
         else:
-            self.logger.debug('Message produced, offset: {0}'.format(msg.offset()))
+            self.logger.debug('Message produced offset: {0} - key: {1}'.format(msg.offset(),msg.key()))
 
     @asyncio.coroutine
     def produce(self, msg, key, callback=None):
