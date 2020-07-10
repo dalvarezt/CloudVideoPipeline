@@ -35,8 +35,11 @@ class RTSP_grabber(threading.Thread):
         logger.info("RTSP stream initialized for camera %s at %s" % (self.cameraId, self.location_name))
 
     def image_encoder(self, img):
-        if img.width > 360:
-            img = img.reduce(36000/img.width)
+        if img.width > 720:
+            factor = 720/img.width
+            newSize = ( int(img.width*factor), int(img.height*factor))
+            img = img.resize(newSize)
+            #img = img.reduce(100-int(72000/img.width))
         bytes = io.BytesIO()
         img.save(bytes, format="JPEG")
         bytes.seek(0)
