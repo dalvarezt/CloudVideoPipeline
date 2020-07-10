@@ -37,9 +37,14 @@ class RTSP_grabber(threading.Thread):
     def image_encoder(self, img):
         if img.width > 720:
             factor = 720/img.width
-            newSize = ( int(img.width*factor), int(img.height*factor))
+            newWidth = img.width * factor
+            if newWidth % 2 != 0:
+                newWidth = newWidth + 1
+            newHeight = img.height * factor
+            if newHeight % 2 != 0:
+                newHeight = newHeight + 1
+            newSize = (newWidth, newHeight)
             img = img.resize(newSize)
-            #img = img.reduce(100-int(72000/img.width))
         bytes = io.BytesIO()
         img.save(bytes, format="JPEG")
         bytes.seek(0)
