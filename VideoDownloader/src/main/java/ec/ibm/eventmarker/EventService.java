@@ -11,12 +11,14 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
+import java.util.List;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.RequestScoped;
@@ -29,12 +31,14 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import com.ibm.cloud.objectstorage.AmazonServiceException;
 import com.ibm.cloud.objectstorage.services.s3.AmazonS3;
+import com.ibm.cloud.objectstorage.services.s3.model.ObjectListing;
 import com.ibm.cloud.objectstorage.services.s3.model.ObjectMetadata;
 import com.ibm.cloud.objectstorage.services.s3.model.S3Object;
+import com.ibm.cloud.objectstorage.services.s3.model.S3ObjectSummary;
 import com.ibm.cloud.objectstorage.util.StringInputStream;
 
 @RequestScoped
-@Path("event")
+@Path("/")
 public class EventService {
 
 	@Inject
@@ -50,10 +54,38 @@ public class EventService {
 	private int MAX_DURATION;
 
 	@GET
-	@Path("{eventId}")
+	@Path("events")
+	@Produces(MediaType.APPLICATION_JSON)
+	public JsonObject getEvents(@QueryParam("startKey") String startKey){
+		JsonObjectBuilder builder = Json.createObjectBuilder();
+		if (startKey==null) {
+			startKey="";
+		}
+		ObjectListing ol = cosClient.listObjects(bucket, "events/"+startKey);
+		List<S3ObjectSummary> results = ol.getObjectSummaries();
+		JsonArrayBuilder ab = Json.createArrayBuilder();
+		for (S3ObjectSummary summary: results) {
+			try {
+				String key = summary.getKey();
+				String eId = key.substring(key.indexOf("/")+1);
+				eId = eId.substring(0, eId.indexOf(".json"));
+				ab.add(eId);
+			} catch (Exception e) {
+				System.err.println("Invalid event key: " + summary.getKey());
+			}
+		}
+		builder.add("status", "success");
+		builder.add("results", ab.build());
+		builder.add("isTruncated", ol.isTruncated());
+		
+		return builder.build();
+	}
+
+	@GET
+	@Path("event/{eventId}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public JsonObject getEvent(@PathParam("eventId") String eventId) {
-
+		
 		JsonObjectBuilder builder = Json.createObjectBuilder();
 		
 		try {
@@ -81,7 +113,7 @@ public class EventService {
 	}
 
 	@PUT
-	@Path("{eventId}")
+	@Path("event/{eventId}")
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	@Produces(MediaType.APPLICATION_JSON)
 	public JsonObject setEvent(@PathParam("eventId") String eventId, @FormParam("startTimestamp") String st,
@@ -128,7 +160,7 @@ public class EventService {
 
 			JsonObjectBuilder builder = Json.createObjectBuilder();
 			builder.add("eventId", eventId)
-			.add("startTimeStamp", DateTimeFormatter.ISO_INSTANT.format(startTimestamp))
+			.add("startTimestamp", DateTimeFormatter.ISO_INSTANT.format(startTimestamp))
 			.add("endTimestamp", DateTimeFormatter.ISO_INSTANT.format(endTimestamp));
 			JsonArrayBuilder sources = Json.createArrayBuilder();
 
