@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Video downloader</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+        <script src="https://code.jquery.com/jquery-3.2.1.min.js" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>        
+        <script src="js/eventUI.js"></script>
+    </head>
+    <body>
+        <div class="container-fluid" id="main-container">
+            <div id="viewMode" class="collapse show" aria-labelledby="Ver evento" data-parent="#main-container">
+                <div class="row mb-6">
+                    <div class="col">
+                        <h1>Eventos</h1>
+                        <p>Página de ejemplo para mostrar el funcionamiento de los eventos.</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm">
+                        <div class="form-group">
+                            <label for="eventIds">Eventos registrados:</label>
+                            <select id="eventIds" name="eventIds"></select>
+                        </div>
+                    </div>
+                    <div class="col-sm">
+                        <button 
+                            type="button" 
+                            id="btnNuevoEvento" 
+                            class="btn btn-secondary"
+                            data-toggle="collapse"
+                            data-target="#editMode"
+                            aria-expanded="false"
+                            aria-controls="modeChange"
+                        >Nuevo evento...</button>
+                    </div>    
+                </div>
+
+                <input type="hidden" id="in_eventId" value="" />
+                <div class="row">
+                    <div class="col-sm">
+                        <div class="form-group">
+                            <label for="in_startTimestamp">Fecha/hora inicial:</label>
+                            <input type="text" id="in_startTimestamp"  disabled />    
+                        </div>
+                        <div class="form-group">
+                            <label for="in_endTimestamp">Fecha/hora final:</label>
+                            <input type="text" id="in_endTimestamp"  disabled />    
+                        </div>
+                    </div>
+                    <div class="col-sm"></div>
+                </div>
+                <div class="row">
+                    <div class="col-sm">
+                        <h3>Fuentes de video</h3>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th socpe="col">Ubicación</th>
+                                    <th scope="col">Cámara</th>
+                                    <th scope="col">&nbsp;</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-sm"></div>
+                </div>
+                <div class="row ml-6">
+                    <div class="col">
+                        <div id="videoContainer">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="editMode" class="collapse" aria-labelledby="Nuevo evento" data-parent="#main-container">
+                <form id="eventForm" class="needs-validation" novalidate>
+                    <div class="row">
+                        <div class="col">
+                            <div class="form-group">
+                                <label for="fldEventId">ID del evento:</label>
+                                <input type="text" id="fldEventId" name="eventId" class="form-control" maxlength="64" minlength="3" required placeholder="Código único del evento"/>
+                            </div>
+                            <div class="form-group">
+                                <label for="fldStartTimestamp">Fecha/hora de inicio:</label>
+                                <input type="text" id="fldStartTimestamp" name="startTimestamp" class="form-control" minlength="19" maxlength="29" required placeholder="yyyy-mm-ddThh:MM:ss.SSSZ" />
+                            </div>
+                            <div class="form-group">
+                                <label for="fldEndTimestamp">Fecha/hora de finalización:</label>
+                                <input type="text" id="fldEndTimestamp" name="endTimestamp" class="form-control" minlength="19" maxlength="29" required placeholder="yyyy-mm-ddThh:MM:ss.SSSZ" />
+                            </div>
+                            <h4>Fuentes de video</h4>
+                            <div id="cbVideoSources">
+                                <input type="hidden" name="location" id="fldLocation">
+                                <input type="hidden" name="camera" id="fldCamera">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="videoSource_1" value="highway;westbound-lane" />
+                                    <label class="form-check-label" for="chk1">Highway - Westbound-lane</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="videoSource_2" value="elordeno;planta-360" />
+                                    <label class="form-check-label" for="chk2">El Ordeño - Planta 360°</label>
+                                </div>    
+                            </div>
+                        </div>
+
+                    </div>
+                    <button type="button" onclick="ui.formSubmit()" class="btn btn-primary">Guardar</button>
+                    <button 
+                        type="button"
+                        class="btn btn-secondary"
+                        data-toggle="collapse"
+                        data-target="#viewMode"
+                        aria-expanded="false"
+                        aria-controls="modeChange"
+                    >Cancelar</button>
+                </form>
+
+            </div>
+        </div>
+    </body>
+</html>
