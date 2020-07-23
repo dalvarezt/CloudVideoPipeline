@@ -11,6 +11,7 @@ import os
 import logging
 import time
 import json
+import sys
 from datetime import datetime
 
 if 'LOGLEVEL' in os.environ:
@@ -26,7 +27,8 @@ class RTSP_grabber(threading.Thread):
     def __init__(self, settings, callback, event_loop):
         threading.Thread.__init__(self)
         self.isRunning = True
-        self.client = rtsp.Client(rtsp_server_uri=settings['streamURI'], verbose=True)
+        self.stream_uri = settings['streamURI']
+        self.client = rtsp.Client(rtsp_server_uri=self.stream_uri, verbose=True)
         self.cameraId = settings['cameraId']
         self.location_name = settings['locationName']
         self.fps = settings['FPS']
@@ -56,7 +58,7 @@ class RTSP_grabber(threading.Thread):
         fps = 1 / self.fps
         while self.is_alive() and self.isRunning:
             frame = self.client.read()
-            if not frame is None:
+            if not frame is None and self.client.isOpened():
                 new_ts = time.time()
                 if new_ts - last_ts >= fps :
                     last_ts = new_ts
@@ -70,6 +72,17 @@ class RTSP_grabber(threading.Thread):
                         "image":b64frame
                     }
                     asyncio.run_coroutine_threadsafe(self.callback(json.dumps(message), key), self.loop)
+            elif not self.client.isOpened():
+                logger.warning("Stream from camera %s at %s got disconnected. Attempting reconnection" % (self.cameraId, self.location_name))
+                self.client.close()
+                self.client.open()
+                timeout=0
+                while not self.client.isOpened() and timeout<10:
+                    time.sleep(1)
+                    timeout = timeout +1
+                if not self.client.isOpened():
+                    logger.error("Client didn't get reconnected. Resetting instance")
+                    self.client = rtsp.Client(rtsp_server_uri=self.stream_uri, verbose=True)
             else:
                 logger.warning("Stream from camera %s at %s is not transmitting" % (self.cameraId, self.location_name))
                 time.sleep(5)
