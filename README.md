@@ -147,10 +147,10 @@ stream_sources:
     locationName: highway
     FPS: 4
  - source:
-	streamURI: rtsp://user:password@freja.hiof.no:1935/rtplive/definst/hessdalen03.stream
-	cameraId: woods
-	locationName: hessdalen03
-	FPS: 4
+    streamURI: rtsp://user:password@freja.hiof.no:1935/rtplive/definst/hessdalen03.stream
+    cameraId: woods
+    locationName: hessdalen03
+    FPS: 4
 ```
 
 As seen, this file allows the configuration of one or more video sources. 
